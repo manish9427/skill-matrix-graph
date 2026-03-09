@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as d3 from "d3";
 
 type ProficiencyLevel = "learning" | "familiar" | "expert";
