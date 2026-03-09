@@ -345,7 +345,9 @@ function useGraph({ people, skills, connections, width, height, selectedId, sele
       simNodes.forEach(n => { if (n.x && n.y) posRef.current[n.id] = { x: n.x, y: n.y }; });
     });
 
-    return () => sim.stop();
+    return () => {
+      sim.stop();
+    };
   }, [people, skills, connections, width, height]);
 
   return svgRef;
