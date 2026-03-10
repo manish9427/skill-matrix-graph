@@ -221,7 +221,7 @@ function Btn({ children, onClick, variant = "primary", disabled, full }: { child
   );
 }
 
-interface SimNode extends d3.SimulationNodeDatum {
+interface SimNode {
   id: string;
   nodeType: "person" | "skill";
   name: string;
@@ -229,9 +229,13 @@ interface SimNode extends d3.SimulationNodeDatum {
   category?: string;
   x?: number;
   y?: number;
+  fx?: number | null;
+  fy?: number | null;
 }
 
-interface SimLink extends d3.SimulationLinkDatum<SimNode> {
+interface SimLink {
+  source: string | SimNode;
+  target: string | SimNode;
   id: string;
   proficiency: string;
 }
@@ -250,7 +254,7 @@ interface UseGraphProps {
 function useGraph({ people, skills, connections, width, height, selectedId, selectedType, onNodeClick }: UseGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const posRef = useRef<Record<string, { x: number; y: number }>>({});
-  const simRef = useRef<d3.Simulation<SimNode, SimLink> | null>(null);
+  const simRef = useRef<any>(null);
 
   useEffect(() => {
     if (!svgRef.current || width < 10) return;
@@ -272,8 +276,8 @@ function useGraph({ people, skills, connections, width, height, selectedId, sele
       ...c, source: c.personId, target: c.skillId,
     }));
 
-    const sim = d3.forceSimulation<SimNode, SimLink>(simNodes)
-      .force("link", d3.forceLink(simLinks).id(d => d.id).distance(115).strength(0.4))
+    const sim = d3.forceSimulation(simNodes)
+      .force("link", d3.forceLink(simLinks).id((d: any) => d.id).distance(115).strength(0.4))
       .force("charge", d3.forceManyBody().strength(-320))
       .force("center", d3.forceCenter(width / 2, height / 2).strength(0.04))
       .force("collide", d3.forceCollide(50));
@@ -281,67 +285,67 @@ function useGraph({ people, skills, connections, width, height, selectedId, sele
 
     const g = svg.append("g");
 
-    const zoom = d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.15, 3]).on("zoom", e => g.attr("transform", e.transform));
+    const zoom = d3.zoom().scaleExtent([0.15, 3]).on("zoom", (e: any) => g.attr("transform", e.transform));
     svg.call(zoom);
-    svg.on("click", e => { if (e.target === svgRef.current) onNodeClick(null, null); });
+    svg.on("click", (e: any) => { if (e.target === svgRef.current) onNodeClick(null, null); });
 
     const linkG = g.append("g");
     const linkSel = linkG.selectAll("g.link")
-      .data(simLinks, d => d.id).enter().append("g").attr("class", "link");
+      .data(simLinks, (d: any) => d.id).enter().append("g").attr("class", "link");
 
     linkSel.append("line")
       .attr("stroke-width", 2)
-      .attr("stroke", d => PROF_COLORS[d.proficiency].edge)
+      .attr("stroke", (d: any) => PROF_COLORS[d.proficiency].edge)
       .attr("stroke-opacity", 0.6);
 
     linkSel.append("text")
       .attr("text-anchor", "middle").attr("dy", -5)
       .attr("font-size", "9.5px").attr("font-family", "'DM Mono', monospace")
-      .attr("fill", d => PROF_COLORS[d.proficiency].text).attr("pointer-events", "none")
+      .attr("fill", (d: any) => PROF_COLORS[d.proficiency].text).attr("pointer-events", "none")
       .attr("font-weight", "500")
-      .text(d => d.proficiency);
+      .text((d: any) => d.proficiency);
 
     const nodeG = g.append("g");
     const nodeSel = nodeG.selectAll("g.node")
-      .data(simNodes, d => d.id)
+      .data(simNodes, (d: any) => d.id)
       .enter().append("g").attr("class", "node")
       .style("cursor", "pointer")
       .call(
-        d3.drag<SVGGElement, SimNode>()
-          .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-          .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; }) // e.x is correct in d3 v6+
-          .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); posRef.current[d.id] = { x: e.x, y: e.y }; })
+        d3.drag()
+          .on("start", (e: any, d: any) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+          .on("drag", (e: any, d: any) => { d.fx = e.x; d.fy = e.y; }) // e.x is correct in d3 v6+
+          .on("end", (e: any, d: any) => { if (!e.active) sim.alphaTarget(0); posRef.current[d.id] = { x: e.x, y: e.y }; })
       )
-      .on("click", (e, d) => { e.stopPropagation(); onNodeClick(d.id, d.nodeType); });
+      .on("click", (e: any, d: any) => { e.stopPropagation(); onNodeClick(d.id, d.nodeType); });
 
-    const personSel = nodeSel.filter(d => d.nodeType === "person");
+    const personSel = nodeSel.filter((d: any) => d.nodeType === "person");
     personSel.append("circle").attr("r", 28).attr("fill", C.personFill)
       .attr("stroke", C.personStroke).attr("stroke-width", 2);
     personSel.append("text").attr("text-anchor", "middle").attr("dy", "-6px")
       .attr("font-size", "13px").attr("font-family", "'Fraunces', Georgia, serif").attr("font-weight", "700")
       .attr("fill", C.text).attr("pointer-events", "none")
-      .text(d => d.name?.[0] || "?");
+      .text((d: any) => d.name?.[0] || "?");
     personSel.append("text").attr("text-anchor", "middle").attr("dy", "9px")
       .attr("font-size", "8.5px").attr("font-family", "'DM Mono', monospace")
       .attr("fill", C.textMid).attr("pointer-events", "none")
-      .text(d => d.name?.slice(0, 7) || "");
+      .text((d: any) => d.name?.slice(0, 7) || "");
 
-    const skillSel = nodeSel.filter(d => d.nodeType === "skill");
+    const skillSel = nodeSel.filter((d: any) => d.nodeType === "skill");
     skillSel.append("rect").attr("x", -28).attr("y", -18).attr("width", 56).attr("height", 36)
-      .attr("rx", 8).attr("fill", d => CAT_COLORS[d.category ?? "Other"] ?? CAT_COLORS.Other);
+      .attr("rx", 8).attr("fill", (d: any) => CAT_COLORS[d.category ?? "Other"] ?? CAT_COLORS.Other);
     skillSel.append("text").attr("text-anchor", "middle").attr("dy", "0.35em")
       .attr("font-size", "10px").attr("font-family", "'Outfit', sans-serif").attr("font-weight", "700")
       .attr("fill", "#FFF").attr("pointer-events", "none")
-      .text(d => d.name.length > 9 ? d.name.slice(0, 8) + "…" : d.name);
+      .text((d: any) => d.name.length > 9 ? d.name.slice(0, 8) + "…" : d.name);
 
     sim.on("tick", () => {
       linkSel.select("line")
-        .attr("x1", d => (d.source as SimNode).x!).attr("y1", d => (d.source as SimNode).y!)
-        .attr("x2", d => (d.target as SimNode).x!).attr("y2", d => (d.target as SimNode).y!);
+        .attr("x1", (d: any) => (d.source as SimNode).x!).attr("y1", (d: any) => (d.source as SimNode).y!)
+        .attr("x2", (d: any) => (d.target as SimNode).x!).attr("y2", (d: any) => (d.target as SimNode).y!);
       linkSel.select("text")
-        .attr("x", d => ((d.source as SimNode).x! + (d.target as SimNode).x!) / 2)
-        .attr("y", d => ((d.source as SimNode).y! + (d.target as SimNode).y!) / 2);
-      nodeSel.attr("transform", d => `translate(${d.x},${d.y})`);
+        .attr("x", (d: any) => ((d.source as SimNode).x! + (d.target as SimNode).x!) / 2)
+        .attr("y", (d: any) => ((d.source as SimNode).y! + (d.target as SimNode).y!) / 2);
+      nodeSel.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
       simNodes.forEach(n => { if (n.x && n.y) posRef.current[n.id] = { x: n.x, y: n.y }; });
     });
 
@@ -393,8 +397,8 @@ function DetailPanel({ selectedId, selectedType, people, skills, connections, on
     setEditing(false);
   };
 
-  const title = person ? person.name : skill.name;
-  const sub   = person ? person.role : skill.category;
+  const title = person ? person.name : skill!.name;
+  const sub   = person ? person.role : skill!.category;
 
   return (
     <div style={{
@@ -450,8 +454,8 @@ function DetailPanel({ selectedId, selectedType, people, skills, connections, on
                 <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 600, color: C.text }}>{other?.name ?? "?"}</div>
                 <ProfBadge level={c.proficiency} small />
               </div>
-              {skill && <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 11, color: C.textMuted }}>{other?.role}</span>}
-              {person && <CatTag cat={other?.category ?? "Other"} />}
+              {skill && <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 11, color: C.textMuted }}>{(other as Person)?.role}</span>}
+              {person && <CatTag cat={(other as Skill)?.category ?? "Other"} />}
               <button onClick={() => onDeleteConnection(c.id)} title="Remove"
                 style={{ background: "none", border: "none", color: "transparent", cursor: "pointer", fontSize: 13, flexShrink: 0, transition: "color 0.1s" }}
                 onMouseEnter={e => e.currentTarget.style.color = "#EF4444"}
@@ -538,16 +542,16 @@ export default function App() {
     closeModal();
   };
 
-  const updateNode = (id, type, patch) => {
+  const updateNode = (id: string, type: "person" | "skill", patch: Partial<Person | Skill>) => {
     if (type === "person") setPeople(p => p.map(n => n.id === id ? { ...n, ...patch } : n));
     if (type === "skill")  setSkills(s => s.map(n => n.id === id ? { ...n, ...patch } : n));
   };
-  const deleteNode = (id, type) => {
+  const deleteNode = (id: string, type: "person" | "skill") => {
     if (type === "person") { setPeople(p => p.filter(n => n.id !== id)); setConnections(c => c.filter(x => x.personId !== id)); }
     if (type === "skill")  { setSkills(s => s.filter(n => n.id !== id)); setConnections(c => c.filter(x => x.skillId !== id)); }
     setSelectedId(null); setSelectedType(null);
   };
-  const deleteConnection = id => setConnections(c => c.filter(x => x.id !== id));
+  const deleteConnection = (id: string) => setConnections(c => c.filter(x => x.id !== id));
 
   const panelOpen = selectedId !== null;
 
@@ -583,7 +587,7 @@ export default function App() {
         <div ref={containerRef} style={{ flex: 1, position: "relative", overflow: "hidden" }}>
           <svg ref={svgRef} width={dims.w} height={dims.h} style={{ display: "block", background: C.canvas }} />
 
-          {panelOpen && (
+          {selectedId && selectedType && (
             <DetailPanel
               selectedId={selectedId} selectedType={selectedType}
               people={people} skills={skills} connections={connections}
