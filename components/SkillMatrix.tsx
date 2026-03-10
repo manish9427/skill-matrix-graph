@@ -21,7 +21,7 @@ interface Connection {
   id: string;
   personId: string;
   skillId: string;
-  proficiency: string; // Stored as string to match CSV/JSON, cast to ProficiencyLevel when needed
+  proficiency: string;
 }
 
 const SEED_PEOPLE: Person[] = [
